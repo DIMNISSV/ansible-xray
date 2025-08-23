@@ -1,0 +1,16 @@
+---
+# Общие переменные для всех xray серверов
+xray_version: "1.8.10"
+
+xray_install_dir: "/usr/local/bin"
+xray_config_dir: "/usr/local/etc/xray"
+xray_user: "xray"
+xray_group: "xray"
+
+xray_listen_port: 443
+xray_protocol: "vless"
+xray_flow: "xtls-rprx-vision"
+
+reality_dest_server: "www.apple.com:443"
+reality_server_names:
+ - "www.apple.com"

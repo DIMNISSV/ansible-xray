@@ -1,0 +1,6 @@
+---
+- name: Deploy Xray Proxy Server
+  hosts: xray_servers
+  become: yes
+  roles:
+    - xray

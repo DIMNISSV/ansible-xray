@@ -1,0 +1,96 @@
+---
+- name: Create xray group
+  group:
+    name: "{{ xray_group }}"
+    state: present
+
+- name: Create xray user
+  user:
+    name: "{{ xray_user }}"
+    group: "{{ xray_group }}"
+    shell: /bin/false
+    system: yes
+    create_home: yes
+    state: present
+
+- name: Install dependencies
+  apt:
+    name:
+      - unzip
+    state: present
+    update_cache: yes
+  # Эта опция нужна, чтобы 'apt update' выполнялся даже в "проверочном" режиме
+  check_mode: no
+
+- name: Create Xray config directory
+  file:
+    path: "{{ xray_config_dir }}"
+    state: directory
+    owner: "{{ xray_user }}"
+    group: "{{ xray_group }}"
+    mode: '0755'
+
+- name: Check current Xray version
+  # Выполняем команду 'xray version', чтобы узнать, какая версия установлена
+  command: "{{ xray_install_dir }}/xray version"
+  register: xray_current_version
+  # Не считать задачу 'проваленной', если команда не найдена (Xray еще не установлен)
+  failed_when: false
+  # Не считать задачу 'измененной', так как она только получает информацию
+  changed_when: false
+
+- name: Download and install Xray
+  # Этот блок будет выполнен, только если Xray не установлен или его версия
+  # не совпадает с той, что указана в наших переменных (xray_version)
+  block:
+    - name: Download Xray archive
+      unarchive:
+        src: "https://github.com/XTLS/Xray-core/releases/download/v{{ xray_version }}/Xray-linux-64.zip"
+        dest: "/tmp"
+        remote_src: yes
+        mode: '0755'
+
+    - name: Install Xray binary
+      copy:
+        src: "/tmp/xray"
+        dest: "{{ xray_install_dir }}/xray"
+        remote_src: yes
+        mode: '0755'
+
+    - name: Install geoip and geosite assets
+      copy:
+        src: "/tmp/{{ item }}"
+        dest: "{{ xray_install_dir }}/{{ item }}"
+        remote_src: yes
+      loop:
+        - "geoip.dat"
+        - "geosite.dat"
+
+  # Условие для выполнения всего блока 'Download and install Xray'
+  when: xray_current_version.stdout is not defined or xray_version not in xray_current_version.stdout
+
+- name: Create Xray configuration file
+  template:
+    src: config.json.j2
+    dest: "{{ xray_config_dir }}/config.json"
+    owner: "{{ xray_user }}"
+    group: "{{ xray_group }}"
+    mode: '0644'
+  # Сообщить обработчику, что нужно перезапустить Xray, если конфиг изменился
+  notify: Restart xray
+
+- name: Create systemd service file for Xray
+  template:
+    src: xray.service.j2
+    dest: /etc/systemd/system/xray.service
+    mode: '0644'
+  # Сообщить обработчику, что нужно перезапустить Xray, если сервис-файл изменился
+  notify: Restart xray
+
+- name: Ensure Xray service is started and enabled on boot
+  systemd:
+    name: xray
+    state: started
+    enabled: yes
+    # Перечитать конфигурации systemd, если мы создали новый service-файл
+    daemon_reload: yes
