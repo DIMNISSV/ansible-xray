@@ -14,3 +14,8 @@ xray_flow: "xtls-rprx-vision"
 reality_dest_server: "www.apple.com:443"
 reality_server_names:
  - "www.apple.com"
+
+# Logging settings
+xray_log_dir: "/var/log/xray"
+xray_access_log_path: "{{ xray_log_dir }}/access.log"
+xray_error_log_path: "{{ xray_log_dir }}/error.log"

@@ -1,0 +1,36 @@
+---
+- name: Generate Xray Connection Link
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  # Указываем путь к инвентарю, чтобы Ansible знал о хостах
+  vars:
+    inventory: "inventory/prod/hosts.ini"
+
+  vars_prompt:
+    - name: target_host
+      prompt: "Enter the server name from your inventory (e.g., prod_server1)"
+      private: no
+
+  tasks:
+    - name: Check if host_vars file exists
+      ansible.builtin.stat:
+        path: "host_vars/{{ target_host }}.yml"
+      register: host_vars_file
+
+    - name: Fail if host_vars file is not found
+      ansible.builtin.fail:
+        msg: "The variable file for '{{ target_host }}' was not found at 'host_vars/{{ target_host }}.yml'."
+      when: not host_vars_file.stat.exists
+
+    - name: Load variables for the target host
+      ansible.builtin.include_vars: "{{ item }}"
+      with_fileglob:
+        - "roles/xray/defaults/main.yml"
+        - "host_vars/{{ target_host }}.yml"
+
+    - name: Assemble and display VLESS link
+      ansible.builtin.debug:
+        msg:
+          - "COPY THE LINK BELOW:"
+          - "vless://{{ xray_uuid }}@{{ hostvars[target_host].ansible_host }}:{{ xray_listen_port }}?security=reality&sni={{ reality_server_names[0] }}&flow={{ xray_flow }}&publicKey={{ reality_public_key }}&shortId={{ reality_short_id }}#{{ target_host }}"

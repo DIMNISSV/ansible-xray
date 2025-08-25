@@ -13,6 +13,25 @@
     create_home: yes
     state: present
 
+- name: Create Xray log directory
+  ansible.builtin.file:
+    path: "{{ xray_log_dir }}"
+    state: directory
+    owner: "{{ xray_user }}"
+    group: "{{ xray_group }}"
+    mode: '0755'
+
+- name: Create Xray log files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    owner: "{{ xray_user }}"
+    group: "{{ xray_group }}"
+    mode: '0644'
+  loop:
+    - "{{ xray_access_log_path }}"
+    - "{{ xray_error_log_path }}"
+
 - name: Install dependencies
   apt:
     name:

@@ -1,7 +1,10 @@
 {
-  "log": {
-    "loglevel": "warning"
-  },
+"log": {
+  "access": "{{ xray_access_log_path }}",
+  "error": "{{ xray_error_log_path }}",
+  "loglevel": "warning"
+},
+
   "inbounds": [
     {
       "listen": "0.0.0.0",
